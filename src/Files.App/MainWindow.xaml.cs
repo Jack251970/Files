@@ -9,6 +9,7 @@ using Microsoft.UI.Xaml.Navigation;
 using Windows.ApplicationModel.Activation;
 using Windows.Storage;
 using WinUIEx;
+using WinUIEx.Messaging;
 using IO = System.IO;
 
 namespace Files.App
@@ -19,6 +20,7 @@ namespace Files.App
 		public static MainWindow Instance => _Instance ??= new();
 
 		public IntPtr WindowHandle { get; }
+		private bool CanWindowToFront { get; set; }
 
 		private MainWindow()
 		{
@@ -51,6 +53,8 @@ namespace Files.App
 			// Setting this property when the setting is disabled will result in the taskbar overlapping the application
 			if (AppLifecycleHelper.IsAutoHideTaskbarEnabled()) 
 				Win32PInvoke.SetPropW(WindowHandle, "NonRudeHWND", new IntPtr(1));
+
+			WindowManager.Get(this).WindowMessageReceived += WindowManager_WindowMessageReceived;
 		}
 
 		public void ShowSplashScreen()
@@ -319,6 +323,34 @@ namespace Files.App
 					case ParsedCommandType.OutputPath:
 						App.OutputPath = command.Payload;
 						break;
+				}
+			}
+		}
+
+		public bool SetCanWindowToFront(bool canWindowToFront)
+		{
+			if (CanWindowToFront != canWindowToFront)
+			{
+				CanWindowToFront = canWindowToFront;
+				return true;
+			}
+			return false;
+		}
+
+		public void BringToFrontEx()
+		{
+			Win32Helper.BringToForegroundEx(new(WindowHandle));
+		}
+
+		private const int WM_WINDOWPOSCHANGING = 0x0046;
+		private void WindowManager_WindowMessageReceived(object? sender, WindowMessageEventArgs e)
+		{
+			if (!CanWindowToFront)
+			{
+				if (e.Message.MessageId == WM_WINDOWPOSCHANGING)
+				{
+					Win32Helper.ForceWindowPosition(e.Message.LParam);
+					e.Handled = true;
 				}
 			}
 		}

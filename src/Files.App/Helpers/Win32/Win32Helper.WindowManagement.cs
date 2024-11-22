@@ -4,6 +4,7 @@
 using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using Vanara.PInvoke;
 using Windows.Win32;
 using Windows.Win32.UI.WindowsAndMessaging;
@@ -74,6 +75,17 @@ namespace Files.App.Helpers
 				IntPtr.Size == 4
 					? Win32PInvoke.SetWindowLongPtr32(hWnd, nIndex, dwNewLong)
 					: Win32PInvoke.SetWindowLongPtr64(hWnd, nIndex, dwNewLong);
+		}
+
+		/// <summary>
+		/// Force window to stay at bottom of other upper windows.
+		/// </summary>
+		/// <param name="lParam">The lParam of the message.</param>
+		public static void ForceWindowPosition(nint lParam)
+		{
+			var windowPos = Marshal.PtrToStructure<WINDOWPOS>(lParam);
+			windowPos.flags |= SetWindowPosFlags.SWP_NOZORDER;
+			Marshal.StructureToPtr(windowPos, lParam, false);
 		}
 	}
 }
